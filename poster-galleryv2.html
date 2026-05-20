@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDITVAULT — Your Edit Showcase</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0a0a0a; --surface: #141414; --surface2: #1e1e1e;
+    --border: rgba(255,255,255,0.08); --text: #f0ede8; --muted: #888;
+    --accent: #e8ff5a; --accent2: #ff5a7e;
+    --font-display: 'Bebas Neue', sans-serif; --font-body: 'DM Sans', sans-serif; --radius: 12px;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; overflow-x: hidden; }
+
+  /* NAV */
+  nav { position: sticky; top: 0; z-index: 100; background: rgba(10,10,10,0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .logo { font-family: var(--font-display); font-size: 28px; letter-spacing: 3px; color: var(--accent); text-decoration: none; }
+  .logo span { color: var(--text); }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .nav-search { display: flex; align-items: center; gap: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 999px; padding: 8px 16px; width: 220px; transition: border-color 0.2s, width 0.3s; }
+  .nav-search:focus-within { border-color: rgba(255,255,255,0.25); width: 280px; }
+  .nav-search svg { color: var(--muted); flex-shrink: 0; }
+  .nav-search input { background: transparent; border: none; outline: none; color: var(--text); font-family: var(--font-body); font-size: 14px; width: 100%; }
+  .nav-search input::placeholder { color: var(--muted); }
+  .btn-upload { background: var(--accent); color: #0a0a0a; border: none; border-radius: 999px; padding: 9px 20px; font-family: var(--font-body); font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: transform 0.15s, opacity 0.15s; }
+  .btn-upload:hover { opacity: 0.88; transform: scale(0.98); }
+
+  /* DB STATUS PILL */
+  .db-status { display: flex; align-items: center; gap: 6px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); padding: 5px 12px; border: 1px solid var(--border); border-radius: 999px; }
+  .db-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); transition: background 0.3s; }
+  .db-dot.ready { background: #5cba5c; }
+  .db-dot.saving { background: var(--accent); }
+  .db-dot.error { background: var(--accent2); }
+
+  /* HERO */
+  .hero { padding: 5rem 2rem 3.5rem; text-align: center; position: relative; overflow: hidden; }
+  .hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 70% 50% at 50% -10%, rgba(232,255,90,0.07) 0%, transparent 70%); pointer-events: none; }
+  .hero-eyebrow { font-size: 11px; letter-spacing: 4px; text-transform: uppercase; color: var(--accent); margin-bottom: 1.25rem; }
+  .hero-title { font-family: var(--font-display); font-size: clamp(60px, 12vw, 120px); letter-spacing: 6px; line-height: 0.9; color: var(--text); margin-bottom: 1.5rem; }
+  .hero-title .line2 { color: transparent; -webkit-text-stroke: 1px rgba(255,255,255,0.3); }
+  .hero-sub { color: var(--muted); font-size: 15px; font-weight: 300; max-width: 380px; margin: 0 auto 2.5rem; line-height: 1.7; }
+
+  /* FILTERS */
+  .filters { display: flex; align-items: center; gap: 8px; padding: 0 2rem 2rem; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+  .filters::-webkit-scrollbar { display: none; }
+  .filter-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: 7px 18px; font-family: var(--font-body); font-size: 13px; cursor: pointer; white-space: nowrap; transition: all 0.18s; }
+  .filter-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+  .filter-btn.active { background: var(--accent); border-color: var(--accent); color: #0a0a0a; font-weight: 500; }
+
+  /* GRID */
+  .grid-container { padding: 0 1.5rem 4rem; columns: 5 180px; column-gap: 12px; }
+  .card { break-inside: avoid; margin-bottom: 12px; border-radius: var(--radius); overflow: hidden; position: relative; cursor: pointer; display: block; animation: fadeUp 0.4s ease both; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .card-img { display: block; width: 100%; border-radius: var(--radius); transition: transform 0.4s ease; }
+  .card:hover .card-img { transform: scale(1.03); }
+  .card-overlay { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 55%); border-radius: var(--radius); opacity: 0; transition: opacity 0.3s; display: flex; flex-direction: column; justify-content: flex-end; padding: 14px; }
+  .card:hover .card-overlay { opacity: 1; }
+  .card-title { font-size: 13px; font-weight: 500; color: #fff; margin-bottom: 6px; line-height: 1.3; }
+  .card-meta { display: flex; align-items: center; justify-content: space-between; }
+  .card-tag { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+  .card-actions { display: flex; gap: 5px; }
+  .icon-btn { width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.15); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.18s; backdrop-filter: blur(4px); }
+  .icon-btn:hover { background: rgba(255,255,255,0.28); }
+  .icon-btn svg { color: #fff; }
+  .icon-btn.delete-btn:hover { background: rgba(255,90,126,0.55); }
+  .card-like.liked { background: rgba(255,90,126,0.6); }
+  .badge { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.55); color: rgba(255,255,255,0.6); font-size: 9px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; opacity: 0; transition: opacity 0.3s; border: 1px solid rgba(255,255,255,0.1); }
+  .card:hover .badge { opacity: 1; }
+  .badge.sample-badge { background: rgba(232,255,90,0.12); color: var(--accent); border-color: rgba(232,255,90,0.2); }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(10px); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 10px 20px; font-size: 13px; color: var(--text); z-index: 9999; opacity: 0; transition: opacity 0.25s, transform 0.25s; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: rgba(92,186,92,0.4); }
+  .toast.error { border-color: rgba(255,90,126,0.4); }
+
+  /* LIGHTBOX */
+  .lightbox { position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.92); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+  .lightbox.open { opacity: 1; pointer-events: all; }
+  .lightbox-inner { max-width: 90vw; max-height: 90vh; position: relative; display: flex; gap: 0; border-radius: 16px; overflow: hidden; background: var(--surface); transform: scale(0.94); transition: transform 0.28s ease; }
+  .lightbox.open .lightbox-inner { transform: scale(1); }
+  .lightbox-img { max-height: 86vh; max-width: 60vw; object-fit: contain; display: block; }
+  .lightbox-info { width: 280px; flex-shrink: 0; padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; border-left: 1px solid var(--border); }
+  .lightbox-tag { font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--accent); }
+  .lightbox-title { font-family: var(--font-display); font-size: 28px; letter-spacing: 1px; line-height: 1.1; color: var(--text); }
+  .lightbox-desc { font-size: 13px; color: var(--muted); line-height: 1.7; font-weight: 300; }
+  .lightbox-date { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; }
+  .lightbox-stats { display: flex; gap: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat-num { font-size: 22px; font-weight: 500; }
+  .stat-label { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; }
+  .lb-actions { display: flex; gap: 8px; margin-top: auto; }
+  .btn-download { background: var(--accent); color: #0a0a0a; border: none; border-radius: 999px; padding: 11px 20px; font-family: var(--font-body); font-weight: 500; font-size: 14px; cursor: pointer; flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.18s; }
+  .btn-download:hover { opacity: 0.85; }
+  .btn-delete-lb { background: transparent; border: 1px solid rgba(255,90,126,0.3); color: var(--accent2); border-radius: 999px; padding: 11px 16px; font-family: var(--font-body); font-size: 14px; cursor: pointer; transition: background 0.18s; }
+  .btn-delete-lb:hover { background: rgba(255,90,126,0.12); }
+  .lightbox-close { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.18s; z-index: 2; }
+  .lightbox-close:hover { background: rgba(255,255,255,0.2); }
+
+  /* MODAL */
+  .modal-bg { position: fixed; inset: 0; z-index: 998; background: rgba(0,0,0,0.88); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.22s; }
+  .modal-bg.open { opacity: 1; pointer-events: all; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2.5rem; width: 460px; max-width: 94vw; transform: translateY(20px); transition: transform 0.28s ease; }
+  .modal-bg.open .modal { transform: translateY(0); }
+  .modal-title { font-family: var(--font-display); font-size: 32px; letter-spacing: 2px; margin-bottom: 1.75rem; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1.25rem; }
+  .form-label { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+  .form-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-family: var(--font-body); font-size: 14px; outline: none; transition: border-color 0.18s; }
+  .form-input:focus { border-color: rgba(255,255,255,0.3); }
+  .form-input::placeholder { color: var(--muted); }
+  .drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 2.5rem; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; margin-bottom: 1.5rem; }
+  .drop-zone:hover, .drop-zone.dragging { border-color: var(--accent); background: rgba(232,255,90,0.03); }
+  .drop-zone p { color: var(--muted); font-size: 13px; margin-top: 10px; }
+  .drop-zone strong { color: var(--text); }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; }
+  .btn-cancel { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 999px; padding: 9px 20px; font-family: var(--font-body); font-size: 14px; cursor: pointer; transition: border-color 0.18s, color 0.18s; }
+  .btn-cancel:hover { border-color: rgba(255,255,255,0.25); color: var(--text); }
+  .btn-submit { background: var(--accent); color: #0a0a0a; border: none; border-radius: 999px; padding: 9px 24px; font-family: var(--font-body); font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.18s; }
+  .btn-submit:hover { opacity: 0.85; }
+
+  /* LOADING */
+  .loading-state { text-align: center; padding: 5rem 2rem; }
+  .spinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .empty { text-align: center; padding: 5rem 2rem; color: var(--muted); display: none; }
+  .empty.show { display: block; }
+  .empty h3 { font-family: var(--font-display); font-size: 36px; letter-spacing: 2px; margin-bottom: 0.5rem; color: var(--text); }
+
+  footer { border-top: 1px solid var(--border); padding: 2rem; display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 13px; }
+  .footer-logo { font-family: var(--font-display); font-size: 20px; letter-spacing: 3px; color: var(--muted); text-decoration: none; }
+
+  @media (max-width: 700px) {
+    .grid-container { columns: 2 140px; }
+    .hero-title { font-size: 56px; }
+    .lightbox-inner { flex-direction: column; max-width: 96vw; }
+    .lightbox-img { max-width: 96vw; max-height: 55vh; }
+    .lightbox-info { width: 100%; border-left: none; border-top: 1px solid var(--border); padding: 1.25rem; }
+    .nav-search { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="#" class="logo">EDIT<span>VAULT</span></a>
+  <div class="nav-right">
+    <div class="db-status" id="dbStatus">
+      <div class="db-dot" id="dbDot"></div>
+      <span id="dbLabel">connecting</span>
+    </div>
+    <div class="nav-search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Search edits…" id="searchInput">
+    </div>
+    <button class="btn-upload" onclick="openModal()">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Upload Edit
+    </button>
+  </div>
+</nav>
+
+<div class="hero">
+  <p class="hero-eyebrow">✦ Your Personal Creative Archive</p>
+  <h1 class="hero-title">
+    <div>SHOW YOUR</div>
+    <div class="line2">EDITS</div>
+  </h1>
+  <p class="hero-sub">A curated vault for your best graphic edits, posters, and visual art. Saved locally — forever yours.</p>
+</div>
+
+<div class="filters" id="filters"></div>
+<div class="grid-container" id="grid">
+  <div class="loading-state" style="column-span:all">
+    <div class="spinner"></div>
+    <p style="color:var(--muted);font-size:14px">Loading your vault…</p>
+  </div>
+</div>
+<div class="empty" id="emptyState">
+  <h3>Nothing here yet</h3>
+  <p>Upload your first edit to fill the vault.</p>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox(event)">
+  <div class="lightbox-inner" id="lightboxInner">
+    <button class="lightbox-close" onclick="closeLightbox(null,true)" aria-label="Close">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <img src="" alt="" class="lightbox-img" id="lightboxImg">
+    <div class="lightbox-info">
+      <div>
+        <p class="lightbox-tag" id="lbTag"></p>
+        <h2 class="lightbox-title" id="lbTitle"></h2>
+      </div>
+      <p class="lightbox-desc" id="lbDesc"></p>
+      <p class="lightbox-date" id="lbDate"></p>
+      <div class="lightbox-stats">
+        <div class="stat"><span class="stat-num" id="lbLikes">0</span><span class="stat-label">likes</span></div>
+        <div class="stat"><span class="stat-num" id="lbViews">0</span><span class="stat-label">views</span></div>
+      </div>
+      <div class="lb-actions">
+        <button class="btn-download" id="lbDownloadBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Save
+        </button>
+        <button class="btn-delete-lb" id="lbDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="modal-bg" id="modalBg" onclick="handleModalClick(event)">
+  <div class="modal">
+    <h2 class="modal-title">Upload Edit</h2>
+    <div class="drop-zone" id="dropZone">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--muted)"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <p>Drop your image here or <strong>browse</strong></p>
+      <input type="file" accept="image/*" id="fileInput" style="display:none" onchange="handleFileSelect(event)">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Title</label>
+      <input type="text" class="form-input" placeholder="Name your edit…" id="uploadTitle">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select class="form-input" id="uploadCat">
+        <option value="Poster">Poster</option>
+        <option value="Wallpaper">Wallpaper</option>
+        <option value="Concert">Concert</option>
+        <option value="Minimalist">Minimalist</option>
+        <option value="Typography">Typography</option>
+        <option value="Collage">Collage</option>
+        <option value="Album Art">Album Art</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input type="text" class="form-input" placeholder="Brief note about this edit…" id="uploadDesc">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-submit" onclick="submitUpload()">Add to Vault</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<footer>
+  <a href="#" class="footer-logo">EV</a>
+  <span id="footerCount">0 edits saved</span>
+  <span>Stored locally in your browser ✦</span>
+</footer>
+
+<script>
+// ─── IndexedDB Setup ───────────────────────────────────────────────
+const DB_NAME = 'editvault';
+const DB_VERSION = 1;
+const STORE = 'posters';
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE)) {
+        const store = d.createObjectStore(STORE, { keyPath: 'id' });
+        store.createIndex('category', 'category', { unique: false });
+        store.createIndex('createdAt', 'createdAt', { unique: false });
+      }
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+function dbGetAll() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).index('createdAt').getAll();
+    req.onsuccess = e => resolve(e.target.result.reverse());
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+function dbPut(item) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const req = tx.objectStore(STORE).put(item);
+    req.onsuccess = () => resolve();
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+function dbDelete(id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    const req = tx.objectStore(STORE).delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+// ─── State ────────────────────────────────────────────────────────
+let posters = [];
+let activeFilter = 'All';
+let searchTerm = '';
+let activeLightboxId = null;
+
+const CATEGORIES = ['All','Poster','Wallpaper','Concert','Minimalist','Typography','Collage','Album Art'];
+
+// ─── DB Status UI ─────────────────────────────────────────────────
+function setDbStatus(state, label) {
+  const dot = document.getElementById('dbDot');
+  const lbl = document.getElementById('dbLabel');
+  dot.className = 'db-dot ' + state;
+  lbl.textContent = label;
+}
+
+// ─── Toast ────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = 'toast', 2800);
+}
+
+// ─── Render ───────────────────────────────────────────────────────
+function renderFilters() {
+  document.getElementById('filters').innerHTML = CATEGORIES.map(c =>
+    `<button class="filter-btn ${c===activeFilter?'active':''}" onclick="setFilter('${c}')">${c}</button>`
+  ).join('');
+}
+
+function setFilter(cat) { activeFilter = cat; renderFilters(); renderGrid(); }
+
+function getFiltered() {
+  return posters.filter(p => {
+    const matchCat = activeFilter==='All' || p.category===activeFilter;
+    const matchSearch = !searchTerm || p.title.toLowerCase().includes(searchTerm) || p.category.toLowerCase().includes(searchTerm);
+    return matchCat && matchSearch;
+  });
+}
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('emptyState');
+  const filtered = getFiltered();
+  document.getElementById('footerCount').textContent = `${posters.length} edit${posters.length!==1?'s':''} saved`;
+
+  if (!filtered.length) {
+    grid.innerHTML = '';
+    empty.classList.add('show');
+    return;
+  }
+  empty.classList.remove('show');
+  grid.innerHTML = filtered.map((p, i) => {
+    const isSample = p.isSample;
+    return `
+    <div class="card" style="animation-delay:${i*30}ms" onclick="openLightbox('${p.id}')">
+      <img src="${p.src}" class="card-img" alt="${p.title}" loading="lazy">
+      <div class="badge ${isSample?'sample-badge':''}">${isSample?'sample':'saved'}</div>
+      <div class="card-overlay">
+        <p class="card-title">${escHtml(p.title)}</p>
+        <div class="card-meta">
+          <span class="card-tag">${escHtml(p.category)}</span>
+          <div class="card-actions">
+            <button class="icon-btn card-like ${p.liked?'liked':''}" onclick="toggleLike(event,'${p.id}')" title="Like">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="${p.liked?'#fff':'none'}" stroke="white" stroke-width="2.5"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </button>
+            <button class="icon-btn delete-btn" onclick="deleteCard(event,'${p.id}')" title="Delete">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Like ─────────────────────────────────────────────────────────
+async function toggleLike(e, id) {
+  e.stopPropagation();
+  const p = posters.find(x=>x.id===id);
+  if (!p) return;
+  p.liked = !p.liked;
+  p.likes += p.liked ? 1 : -1;
+  setDbStatus('saving','saving…');
+  try { await dbPut(p); setDbStatus('ready','saved'); } catch { setDbStatus('error','error'); }
+  renderGrid();
+  if (activeLightboxId === id) {
+    document.getElementById('lbLikes').textContent = p.likes;
+  }
+}
+
+// ─── Delete ───────────────────────────────────────────────────────
+async function deleteCard(e, id) {
+  e.stopPropagation();
+  if (!confirm('Remove this edit from your vault?')) return;
+  setDbStatus('saving','deleting…');
+  try {
+    await dbDelete(id);
+    posters = posters.filter(x=>x.id!==id);
+    setDbStatus('ready','saved');
+    showToast('Edit removed from vault.');
+    renderGrid();
+    if (activeLightboxId === id) closeLightbox(null, true);
+  } catch {
+    setDbStatus('error','error');
+    showToast('Could not delete. Try again.','error');
+  }
+}
+
+// ─── Lightbox ─────────────────────────────────────────────────────
+function openLightbox(id) {
+  const p = posters.find(x=>x.id===id);
+  if (!p) return;
+  activeLightboxId = id;
+  p.views = (p.views||0) + 1;
+  dbPut(p).catch(()=>{});
+  document.getElementById('lightboxImg').src = p.src;
+  document.getElementById('lightboxImg').alt = p.title;
+  document.getElementById('lbTag').textContent = p.category;
+  document.getElementById('lbTitle').textContent = p.title;
+  document.getElementById('lbDesc').textContent = p.desc || '';
+  document.getElementById('lbDate').textContent = p.createdAt ? 'Added ' + new Date(p.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+  document.getElementById('lbLikes').textContent = p.likes || 0;
+  document.getElementById('lbViews').textContent = p.views;
+
+  document.getElementById('lbDownloadBtn').onclick = () => {
+    const a = document.createElement('a');
+    a.href = p.src;
+    a.download = (p.title||'edit').replace(/\s+/g,'_') + '.png';
+    a.click();
+  };
+  document.getElementById('lbDeleteBtn').onclick = () => deleteCard({stopPropagation:()=>{}}, id);
+  document.getElementById('lightbox').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox(e, force) {
+  if (force || (e && e.target===document.getElementById('lightbox'))) {
+    document.getElementById('lightbox').classList.remove('open');
+    document.body.style.overflow = '';
+    activeLightboxId = null;
+  }
+}
+
+// ─── Upload Modal ─────────────────────────────────────────────────
+function openModal() {
+  document.getElementById('modalBg').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function handleModalClick(e) {
+  if (e.target===document.getElementById('modalBg')) closeModal();
+}
+
+let uploadedSrc = null;
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('click', () => document.getElementById('fileInput').click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragging'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragging'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragging');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) previewFile(file);
+});
+function handleFileSelect(e) { const f=e.target.files[0]; if(f) previewFile(f); }
+function previewFile(file) {
+  const r = new FileReader();
+  r.onload = ev => {
+    uploadedSrc = ev.target.result;
+    dropZone.innerHTML = `<img src="${uploadedSrc}" style="max-height:100px;border-radius:8px;"><p style="margin-top:8px"><strong>Image ready</strong></p>`;
+  };
+  r.readAsDataURL(file);
+}
+
+async function submitUpload() {
+  const title = document.getElementById('uploadTitle').value.trim() || 'Untitled Edit';
+  const cat = document.getElementById('uploadCat').value;
+  const desc = document.getElementById('uploadDesc').value.trim() || '';
+  if (!uploadedSrc) { showToast('Please select an image first.','error'); return; }
+
+  const newPoster = {
+    id: 'ev_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    title, category: cat, desc,
+    src: uploadedSrc,
+    likes: 0, views: 0, liked: false,
+    createdAt: Date.now(),
+    isSample: false,
+  };
+
+  setDbStatus('saving','saving…');
+  try {
+    await dbPut(newPoster);
+    posters.unshift(newPoster);
+    setDbStatus('ready','saved');
+    showToast('Edit added to vault! 🎉','success');
+    closeModal();
+    activeFilter = 'All';
+    renderFilters();
+    renderGrid();
+    // Reset
+    document.getElementById('uploadTitle').value = '';
+    document.getElementById('uploadDesc').value = '';
+    document.getElementById('fileInput').value = '';
+    uploadedSrc = null;
+    dropZone.innerHTML = `<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--muted)"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><p>Drop your image here or <strong>browse</strong></p>`;
+  } catch(err) {
+    setDbStatus('error','error');
+    showToast('Failed to save. Storage may be full.','error');
+    console.error(err);
+  }
+}
+
+// ─── Sample data (only inserted once if vault is empty) ──────────
+const PALETTE = [
+  ['#0d0d0d','#1a1a2e','#16213e','#0f3460','#533483'],
+  ['#1a0a00','#3d1400','#6b2200','#c23b00','#ff6b35'],
+  ['#000000','#0a0a0a','#1c1c1c','#ff2d55','#ff6b6b'],
+  ['#0a1628','#0d2137','#1a3a5c','#2e6da4','#5ba4cf'],
+  ['#0d0d0d','#1a1a1a','#2d2d2d','#e8ff5a','#ffffff'],
+  ['#1a0d2e','#2d1b4e','#4a2c7a','#8b5cf6','#c4b5fd'],
+  ['#0a1a0a','#0d2d0d','#1a4a1a','#2d7a2d','#5cba5c'],
+  ['#1a1a0a','#2d2d0d','#4a4a1a','#8a8a1a','#e8e850'],
+];
+const SHAPES = [
+  c=>`<rect x="20" y="20" width="160" height="220" fill="${c[2]}" rx="4"/><rect x="40" y="200" width="120" height="4" fill="${c[4]}"/><circle cx="100" cy="100" r="50" fill="none" stroke="${c[4]}" stroke-width="2" opacity="0.5"/><circle cx="100" cy="100" r="30" fill="${c[3]}" opacity="0.4"/>`,
+  c=>`<rect x="0" y="0" width="200" height="260" fill="${c[1]}"/><polygon points="100,30 170,200 30,200" fill="${c[3]}" opacity="0.7"/><rect x="40" y="220" width="120" height="3" fill="${c[4]}"/>`,
+  c=>`<rect x="0" y="0" width="200" height="260" fill="${c[1]}"/><rect x="30" y="30" width="140" height="140" fill="${c[3]}" opacity="0.3" transform="rotate(15 100 100)"/><rect x="50" y="50" width="100" height="100" fill="${c[4]}" opacity="0.4" transform="rotate(30 100 100)"/>`,
+  c=>`<rect x="0" y="0" width="200" height="260" fill="${c[0]}"/><line x1="0" y1="130" x2="200" y2="130" stroke="${c[3]}" stroke-width="1" opacity="0.3"/><circle cx="100" cy="100" r="70" fill="none" stroke="${c[4]}" stroke-width="1.5"/><circle cx="100" cy="100" r="40" fill="${c[4]}" opacity="0.15"/>`,
+  c=>`<rect x="0" y="0" width="200" height="260" fill="${c[1]}"/><rect x="20" y="20" width="80" height="110" fill="${c[3]}" opacity="0.5"/><rect x="100" y="70" width="80" height="110" fill="${c[4]}" opacity="0.5"/>`,
+  c=>`<rect x="0" y="0" width="200" height="260" fill="${c[0]}"/>${[...Array(6)].map((_,i)=>`<rect x="${20+i*28}" y="40" width="18" height="${60+i*20}" fill="${c[3]}" opacity="${0.3+i*0.1}"/>`).join('')}<rect x="20" y="200" width="160" height="2" fill="${c[4]}"/>`,
+];
+const sampleTitles = ['Neon Drift','Solitude','Gravity','Echo Chamber','Oblivion','Fracture','Night Bloom','Static','Resonance','Cascade','Void Loop','Prism Break'];
+const sampleDescs = ['A study in contrast and negative space.','Typographic experiment with layered geometry.','Inspired by brutalist architecture.','Late-night session — just vibes.','Minimalism meets tension.','Chromatic aberration edit.'];
+const catList = ['Poster','Wallpaper','Concert','Minimalist','Typography','Collage','Album Art'];
+
+function makeSVGPoster(index) {
+  const pal = PALETTE[index % PALETTE.length];
+  const shape = SHAPES[index % SHAPES.length](pal);
+  const h = 220 + (index % 5) * 40;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 ${h}"><rect width="200" height="${h}" fill="${pal[0]}"/>${shape}</svg>`;
+  return 'data:image/svg+xml;base64,' + btoa(svg);
+}
+
+async function seedSamples() {
+  const samples = [];
+  for (let i = 0; i < 12; i++) {
+    const s = {
+      id: 'sample_' + i,
+      title: sampleTitles[i % sampleTitles.length],
+      category: catList[i % catList.length],
+      desc: sampleDescs[i % sampleDescs.length],
+      src: makeSVGPoster(i),
+      likes: Math.floor(Math.random()*120)+5,
+      views: Math.floor(Math.random()*600)+20,
+      liked: false,
+      createdAt: Date.now() - (12-i) * 86400000,
+      isSample: true,
+    };
+    await dbPut(s);
+    samples.push(s);
+  }
+  return samples;
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────
+async function init() {
+  setDbStatus('','connecting');
+  try {
+    db = await openDB();
+    setDbStatus('ready','ready');
+    posters = await dbGetAll();
+    if (posters.length === 0) {
+      setDbStatus('saving','seeding…');
+      posters = await seedSamples();
+      setDbStatus('ready','saved');
+    }
+    renderFilters();
+    renderGrid();
+  } catch(err) {
+    setDbStatus('error','unavailable');
+    document.getElementById('grid').innerHTML = `<div style="padding:4rem;text-align:center;color:var(--muted);column-span:all"><p>Could not open local database.<br>Try a different browser or check storage settings.</p></div>`;
+    console.error('IndexedDB error:', err);
+  }
+}
+
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchTerm = e.target.value.toLowerCase().trim();
+  renderGrid();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Escape') { closeLightbox(null,true); closeModal(); }
+});
+
+init();
+</script>
+</body>
+</html>
